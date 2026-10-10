@@ -9,7 +9,7 @@ import pandas as pd
 from career_diagnostic import QUESTIONS, calculate_role_scores, TARGET_ROLES
 
 
-def generate_dataset(rows: int = 10_000, seed: int = 42) -> pd.DataFrame:
+def generate_dataset(rows: int = 2_000, seed: int = 42) -> pd.DataFrame:
     if rows < 1:
         raise ValueError("rows must be positive")
     rng = random.Random(seed)
@@ -24,7 +24,7 @@ def generate_dataset(rows: int = 10_000, seed: int = 42) -> pd.DataFrame:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--rows", type=int, default=10_000)
+    parser.add_argument("--rows", type=int, default=2_000)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--output", type=Path, default=Path(__file__).with_name("career_diagnostic_dataset.csv"))
     args = parser.parse_args()

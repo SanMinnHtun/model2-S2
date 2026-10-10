@@ -1,6 +1,7 @@
 """Train and persist the Model 2 career classification pipeline."""
 
 import argparse
+import gc
 from pathlib import Path
 
 import joblib
@@ -25,12 +26,30 @@ def train(dataset_path: Path, output_path: Path) -> Pipeline:
         raise ValueError("Dataset has no rows")
     X = frame[FEATURES].astype(int)
     y = frame["target_role"].astype(str)
-    pipeline = Pipeline([("classifier", RandomForestClassifier(n_estimators=300, random_state=42, class_weight="balanced", n_jobs=-1))])
+    pipeline = Pipeline(
+        [
+            (
+                "classifier",
+                RandomForestClassifier(
+                    n_estimators=300,
+                    random_state=42,
+                    class_weight="balanced",
+                    n_jobs=1,
+                ),
+            )
+        ]
+    )
     pipeline.fit(X, y)
+
+    training_rows = len(frame)
+    learned_roles = sorted(y.unique())
+    del X, y, frame
+    gc.collect()
+
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    joblib.dump(pipeline, output_path)
+    joblib.dump(pipeline, output_path, compress=3)
     print(f"Saved pipeline to {output_path}")
-    print(f"Training rows: {len(frame):,}; learned roles: {', '.join(sorted(y.unique()))}")
+    print(f"Training rows: {training_rows:,}; learned roles: {', '.join(learned_roles)}")
     return pipeline
 
 
