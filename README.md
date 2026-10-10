@@ -1,5 +1,54 @@
 # Model 2: IT Career Diagnostic — Frontend Integration Guide
 
+## Deploy the API on Render and connect a Vercel frontend
+
+This repository is the FastAPI backend. Deploy it as a **Render Web Service**, then set the deployed API URL in your frontend project on Vercel. The frontend itself should be deployed separately from its own repository or project directory.
+
+### 1. Create the Render Web Service
+
+1. Push this backend repository to GitHub, GitLab, or Bitbucket and connect it to Render.
+2. In Render, choose **New → Web Service** and select this repository.
+3. Use these settings (set **Root Directory** to the backend folder if this repository is inside a monorepo):
+
+   | Setting | Value |
+   | --- | --- |
+   | Runtime | Python 3 |
+   | Build Command | `pip install -r requirements.txt && python generate_career_dataset.py && python train_career_model.py` |
+   | Start Command | `uvicorn app:app --host 0.0.0.0 --port $PORT` |
+
+The build command creates `career_diagnostic_dataset.csv` and the required `career_diagnostic_pipeline.joblib` model artifact on each deploy. The generated files do not need to be committed. Render's `$PORT` environment variable is required for the service to receive traffic.
+
+After the first deploy, copy the service's public URL, such as `https://your-api.onrender.com`. Check that URL in a browser; `/` should return a JSON response with `"status":"ok"`. API docs are at `/docs`.
+
+### 2. Point the Vercel frontend at Render
+
+In the Vercel project, open **Settings → Environment Variables** and add the variable your frontend reads for its API base URL. Use the deployed Render URL without a trailing slash:
+
+| Frontend framework | Common environment variable | Example value |
+| --- | --- | --- |
+| Vite | `VITE_API_BASE_URL` | `https://your-api.onrender.com` |
+| Next.js (browser code) | `NEXT_PUBLIC_API_BASE_URL` | `https://your-api.onrender.com` |
+| Create React App | `REACT_APP_API_BASE_URL` | `https://your-api.onrender.com` |
+
+Use the variable name already expected by your frontend if it differs. In browser code, call the API using that configured base URL, for example:
+
+```js
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL; // Vite example
+const response = await fetch(`${API_BASE_URL}/api/v1/career/questions`);
+```
+
+For Next.js, read `process.env.NEXT_PUBLIC_API_BASE_URL` instead. Set the variable for the relevant Vercel environments (Production, Preview, and/or Development), then redeploy so the new value is included in the frontend build. These public variables are visible to browser users; use them for the API URL only, never secrets.
+
+### 3. Verify the connection
+
+- Open `https://your-api.onrender.com/api/v1/career/questions`; it should return the question list.
+- Load the Vercel site and confirm its quiz can fetch questions and submit predictions.
+- If the browser reports a CORS error, check that requests target the exact Render service URL and that the frontend is calling the API directly. This backend currently allows cross-origin requests from all origins. If you later restrict CORS, add the exact Vercel production and preview origins in `app.py` and redeploy.
+
+Render free instances may sleep while idle and take time to respond on the first request after waking. For a production experience without that delay, choose a Render plan that keeps the service running.
+
+### Local development
+
 This repository provides the backend for a Burmese-language career quiz. Use this guide as the implementation contract for a React Native frontend (Expo or bare React Native). The app should load questions from the API, collect one answer per question, submit all ten answers, and show the predicted role plus a percentage chart of the model's role probabilities.
 
 ## What the backend provides
